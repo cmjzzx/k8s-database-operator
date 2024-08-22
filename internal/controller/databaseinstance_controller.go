@@ -122,7 +122,7 @@ func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Deployment 不存在，创建它
 		logger.Info("创建一个新的 Deployment", "Deployment.Namespace", dbInstance.Namespace, "Deployment.Name", dbInstance.Name)
 		if err := r.Create(ctx, deployment); err != nil {
-			logger.Error(err, "新的 Deployment 失败失败")
+			logger.Error(err, "新的 Deployment 创建失败")
 			return ctrl.Result{}, err
 		}
 	} else if err != nil {
