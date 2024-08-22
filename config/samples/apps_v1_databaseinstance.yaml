@@ -1,0 +1,9 @@
+apiVersion: apps.zwjk.com/v1
+kind: DatabaseInstance
+metadata:
+  labels:
+    app.kubernetes.io/name: k8s-database-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: databaseinstance-sample
+spec:
+  # TODO(user): Add fields here

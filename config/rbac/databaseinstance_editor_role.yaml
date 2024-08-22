@@ -1,8 +1,11 @@
----
+# permissions for end users to edit databaseinstances.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: manager-role
+  labels:
+    app.kubernetes.io/name: k8s-database-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: databaseinstance-editor-role
 rules:
 - apiGroups:
   - apps.zwjk.com
@@ -19,14 +22,6 @@ rules:
 - apiGroups:
   - apps.zwjk.com
   resources:
-  - databaseinstances/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - apps.zwjk.com
-  resources:
   - databaseinstances/status
   verbs:
   - get
-  - patch
-  - update
