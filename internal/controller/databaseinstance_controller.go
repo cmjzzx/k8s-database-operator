@@ -18,20 +18,20 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"                   // 导入 Kubernetes 的 apps/v1
-	corev1 "k8s.io/api/core/v1"                   // 导入 Kubernetes 的 core/v1 包
-	"k8s.io/apimachinery/pkg/api/errors"          // 错误处理
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1" // 导入 metav1 包
+	// 导入 Kubernetes 的 apps/v1
+	// 导入 Kubernetes 的 core/v1 包
+	// 错误处理
+	// 导入 metav1 包
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr" // 导入 intstr 包
 
+	// 导入 intstr 包
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	databasev1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1" // 导入 databasev1
+	databasev1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1"    // 导入 databasev1
+	"git.ucmed.cn/pdd/k8s-database-operator/internal/pkg/helpers" // 辅助函数
 )
 
 // 定义 DatabaseInstanceReconciler 结构体，负责调节 DatabaseInstance 对象的状态
@@ -67,138 +67,31 @@ func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// 定义镜像的前缀
-	const imagePrefix = "registry.zwjk.com/middleware/"
+	// 生成镜像名称
+	image := helpers.GenerateImageName(dbInstance.Spec.Image, dbInstance.Spec.DatabaseType, dbInstance.Spec.Version)
 
-	// 获取镜像名称
-	image := dbInstance.Spec.Image
-	if image == "" {
-		image = fmt.Sprintf("%s:%s", dbInstance.Spec.DatabaseType, dbInstance.Spec.Version)
-	}
+	// 提取参数
+	instanceName := dbInstance.Name
+	namespace := dbInstance.Namespace
+	replicas := dbInstance.Spec.Replicas
+	databaseType := dbInstance.Spec.DatabaseType
 
-	// 在镜像名称前面加上前缀
-	image = fmt.Sprintf("%s%s", imagePrefix, image)
-
-	// 构造期望的 Deployment 对象
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbInstance.Name,
-			Namespace: dbInstance.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &dbInstance.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": dbInstance.Name,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": dbInstance.Name,
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "database",
-							Image: image,
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 3306,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// 确保 Deployment 存在
-	found := &appsv1.Deployment{}
-	err := r.Get(ctx, client.ObjectKey{Name: dbInstance.Name, Namespace: dbInstance.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		// Deployment 不存在，创建它
-		logger.Info("创建一个新的 Deployment", "Deployment.Namespace", dbInstance.Namespace, "Deployment.Name", dbInstance.Name)
-		if err := r.Create(ctx, deployment); err != nil {
-			logger.Error(err, "新的 Deployment 创建失败")
-			return ctrl.Result{}, err
-		}
-	} else if err != nil {
-		logger.Error(err, "获取 Deployment 失败")
+	// 创建或更新 Deployment
+	deployment := helpers.NewDeployment(instanceName, namespace, image, replicas, databaseType)
+	if err := helpers.EnsureDeployment(ctx, r.Client, deployment); err != nil {
 		return ctrl.Result{}, err
-	} else {
-		// Deployment 存在，更新它
-		logger.Info("更新已有的 Deployment", "Deployment.Namespace", dbInstance.Namespace, "Deployment.Name", dbInstance.Name)
-		found.Spec = deployment.Spec
-		if err := r.Update(ctx, found); err != nil {
-			logger.Error(err, "更新 Deployment 失败")
-			return ctrl.Result{}, err
-		}
 	}
 
-	// 构造期望的 Service 对象
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbInstance.Name,
-			Namespace: dbInstance.Namespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				"app": dbInstance.Name,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Port:       3306, // 可以修改成实际的数据库端口
-					TargetPort: intstr.FromInt(3306),
-				},
-			},
-		},
-	}
-
-	// 确保 Service 存在
-	foundService := &corev1.Service{}
-	err = r.Get(ctx, client.ObjectKey{Name: dbInstance.Name, Namespace: dbInstance.Namespace}, foundService)
-	if err != nil && errors.IsNotFound(err) {
-		// Service 不存在，创建它
-		logger.Info("创建一个新的 Service", "Service.Namespace", dbInstance.Namespace, "Service.Name", dbInstance.Name)
-		if err := r.Create(ctx, service); err != nil {
-			logger.Error(err, "新的 Service 创建失败")
-			return ctrl.Result{}, err
-		}
-	} else if err != nil {
-		logger.Error(err, "获取 Service 失败")
+	// 创建或更新 Service
+	service := helpers.NewService(instanceName, namespace, databaseType)
+	if err := helpers.EnsureService(ctx, r.Client, service); err != nil {
 		return ctrl.Result{}, err
-	} else {
-		// Service 存在，更新它
-		// 更新 Service 时，排除不可以更改的字段如 ClusterIP、Type 等字段，只更新可以更改的字段
-		updatedService := foundService.DeepCopy()
-		updatedService.Spec.Ports = service.Spec.Ports
-		updatedService.Spec.Selector = service.Spec.Selector
-
-		logger.Info("更新 Service", "Service.Namespace", dbInstance.Namespace, "Service.Name", dbInstance.Name)
-		if err := r.Update(ctx, updatedService); err != nil {
-			logger.Error(err, "更新 Service 失败")
-			return ctrl.Result{}, err
-		}
 	}
 
 	// 更新 DatabaseInstance 状态
-	dbInstance.Status = databasev1.DatabaseInstanceStatus{
-		Phase:         "Running",    // 根据实际情况设置
-		Message:       "数据库实例正在运行中", // 根据实际情况设置
-		ReadyReplicas: 1,            // 根据实际情况设置
-		LastUpdated:   metav1.Now(), // 设置为当前时间
-		Conditions: []databasev1.DatabaseInstanceCondition{
-			{
-				Type:               "Ready",
-				Status:             "True",
-				LastTransitionTime: metav1.Now(),
-				Reason:             "Deployment completed successfully",
-				Message:            "数据库实例已成功部署完成",
-			},
-		},
+	if err := helpers.UpdateDatabaseInstanceStatus(ctx, r.Client, &dbInstance); err != nil {
+		logger.Error(err, "更新 DatabaseInstance 状态失败")
+		return ctrl.Result{}, err
 	}
 
 	if err := r.Status().Update(ctx, &dbInstance); err != nil {

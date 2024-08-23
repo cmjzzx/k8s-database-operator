@@ -53,8 +53,12 @@ spec:
                     type: string
                 type: object
               databaseType:
-                description: DatabaseType 表示数据库的类型（例如：mysql、postgresql、oceanbase）
+                description: DatabaseType 表示数据库的类型（目前支持 mysql、postgres、oceanbase-ce 这 3 种）
                 type: string
+                enum:
+                  - mysql
+                  - postgres
+                  - oceanbase-ce
               image:
                 description: Image 表示数据库的容器镜像，包括版本/标签
                 type: string

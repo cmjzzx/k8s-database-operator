@@ -54,7 +54,7 @@ type DatabaseInstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - 定义集群的期望状态
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// DatabaseType 表示数据库的类型（例如：mysql、postgresql、oceanbase）
+	// DatabaseType 表示数据库的类型（例如：mysql、postgres、oceanbase-ce）
 	DatabaseType string `json:"databaseType,omitempty"`
 
 	// Version 表示数据库的版本
