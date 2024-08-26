@@ -76,6 +76,13 @@ func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	replicas := dbInstance.Spec.Replicas
 	databaseType := dbInstance.Spec.DatabaseType
 
+	// 处理 Secret
+	secretName := instanceName + "-secret"
+	_, err := helpers.GetOrCreateSecret(ctx, r.Client, secretName, namespace, databaseType)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// 创建或更新 Deployment
 	deployment := helpers.NewDeployment(instanceName, namespace, image, replicas, databaseType)
 	if err := helpers.EnsureDeployment(ctx, r.Client, deployment); err != nil {
@@ -86,6 +93,31 @@ func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	service := helpers.NewService(instanceName, namespace, databaseType)
 	if err := helpers.EnsureService(ctx, r.Client, service); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// 创建或更新 CronJob
+	if dbInstance.Spec.BackupPolicy.Enabled {
+		// 获取备份镜像，如果 BackupPolicy 中指定了镜像，则使用它，否则使用 dbInstance.Spec.BackupImage
+		backupImage := dbInstance.Spec.BackupPolicy.BackupImage
+		if backupImage == "" {
+			backupImage = dbInstance.Spec.BackupImage // 如果 BackupImage 为空，则使用默认的备份镜像
+		}
+
+		cronJob := helpers.NewCronJob(
+			instanceName+"-backup",
+			namespace,
+			backupImage, // 使用备份镜像
+			dbInstance.Spec.BackupPolicy.Schedule,
+			databaseType,
+		)
+		if err := helpers.EnsureCronJob(ctx, r.Client, cronJob); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		// 如果备份策略未启用，确保没有存在的 CronJob
+		if err := helpers.DeleteCronJob(ctx, r.Client, instanceName+"-backup", namespace); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// 更新 DatabaseInstance 状态

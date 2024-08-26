@@ -29,21 +29,50 @@ func NewDeployment(name, namespace, image string, replicas int32, databaseType s
 
 	// 根据数据库类型设置端口和端口名称
 	var containerPort int32
-	var portName string
+	var portName, mountPath string
 
 	switch databaseType {
 	case "mysql":
 		containerPort = 3306
 		portName = "mysql"
+		mountPath = "/var/lib/mysql"
 	case "postgres":
 		containerPort = 5432
 		portName = "postgres"
+		mountPath = "/var/lib/postgresql/data"
 	case "oceanbase-ce":
 		containerPort = 2881
 		portName = "oceanbase-ce"
+		mountPath = "/oceanbase/store"
 	default:
 		containerPort = 3306
 		portName = "mysql" // 默认值
+		mountPath = "/var/lib/mysql"
+	}
+
+	// 暂时硬编码 NFS 服务器地址和路径
+	const nfsServer = "192.168.4.43"
+	const nfsPath = "/home/nfs"
+
+	// 配置 NFS 存储卷
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "nfs-volume",
+			MountPath: mountPath,
+			SubPath:   databaseType,
+		},
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "nfs-volume",
+			VolumeSource: corev1.VolumeSource{
+				NFS: &corev1.NFSVolumeSource{
+					Server: nfsServer,
+					Path:   nfsPath,
+				},
+			},
+		},
 	}
 
 	return &appsv1.Deployment{
@@ -71,8 +100,10 @@ func NewDeployment(name, namespace, image string, replicas int32, databaseType s
 									Name:          portName,
 								},
 							},
+							VolumeMounts: volumeMounts,
 						},
 					},
+					Volumes: volumes,
 				},
 			},
 		},

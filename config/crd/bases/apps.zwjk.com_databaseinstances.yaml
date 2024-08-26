@@ -42,6 +42,9 @@ spec:
               backupPolicy:
                 description: BackupPolicy 定义了备份策略配置
                 properties:
+                  backupImage:
+                    description: BackupImage 定义备份容器使用的镜像
+                    type: string
                   enabled:
                     description: Enabled 指示是否启用备份
                     type: boolean
@@ -53,12 +56,9 @@ spec:
                     type: string
                 type: object
               databaseType:
-                description: DatabaseType 表示数据库的类型（目前支持 mysql、postgres、oceanbase-ce 这 3 种）
+                description: DatabaseType 表示数据库的类型（目前支持 mysql、postgres、oceanbase-ce
+                  这 3 种）
                 type: string
-                enum:
-                  - mysql
-                  - postgres
-                  - oceanbase-ce
               image:
                 description: Image 表示数据库的容器镜像，包括版本/标签
                 type: string

@@ -47,6 +47,9 @@ type BackupPolicy struct {
 
 	// Retention 定义备份的保留策略
 	Retention string `json:"retention,omitempty"`
+
+	// BackupImage 定义备份容器使用的镜像
+	BackupImage string `json:"backupImage,omitempty"`
 }
 
 // DatabaseInstanceSpec 定义了 DatabaseInstance 的期望状态
@@ -54,7 +57,7 @@ type DatabaseInstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - 定义集群的期望状态
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// DatabaseType 表示数据库的类型（例如：mysql、postgres、oceanbase-ce）
+	// DatabaseType 表示数据库的类型（目前支持 mysql、postgres、oceanbase-ce 这 3 种）
 	DatabaseType string `json:"databaseType,omitempty"`
 
 	// Version 表示数据库的版本
