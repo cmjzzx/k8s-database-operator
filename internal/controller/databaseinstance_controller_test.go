@@ -32,7 +32,7 @@ import (
 
 var _ = Describe("DatabaseInstance Controller", func() {
 	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+		const resourceName = "mysql"
 
 		ctx := context.Background()
 
@@ -43,7 +43,7 @@ var _ = Describe("DatabaseInstance Controller", func() {
 		databaseinstance := &appsv1.DatabaseInstance{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind DatabaseInstance")
+			By("Creating the custom resource for the Kind DatabaseInstance")
 			err := k8sClient.Get(ctx, typeNamespacedName, databaseinstance)
 			if err != nil && errors.IsNotFound(err) {
 				resource := &appsv1.DatabaseInstance{
@@ -52,6 +52,9 @@ var _ = Describe("DatabaseInstance Controller", func() {
 						Namespace: "default",
 					},
 					// TODO(user): Specify other spec details if needed.
+					Spec: appsv1.DatabaseInstanceSpec{
+						DatabaseType: "mysql", // 设置为支持的数据库类型
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

@@ -19,6 +19,8 @@ package controller
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	// 导入 Kubernetes 的 apps/v1
 	// 导入 Kubernetes 的 core/v1 包
 	// 错误处理
@@ -59,12 +61,17 @@ type DatabaseInstanceReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("开始处理 Reconcile", "资源名称", req.NamespacedName)
 
 	// 获取当前的 DatabaseInstance 实例
 	var dbInstance databasev1.DatabaseInstance
 	if err := r.Get(ctx, req.NamespacedName, &dbInstance); err != nil {
-		logger.Error(err, "未获取到 DatabaseInstance 实例")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if errors.IsNotFound(err) {
+			logger.Info("未找到 DatabaseInstance", "资源名称", req.NamespacedName)
+			return ctrl.Result{}, nil // 资源未找到，不需要返回错误
+		}
+		logger.Error(err, "获取 DatabaseInstance 失败", "资源名称", req.NamespacedName)
+		return ctrl.Result{}, err
 	}
 
 	// 生成镜像名称
@@ -122,11 +129,6 @@ func (r *DatabaseInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// 更新 DatabaseInstance 状态
 	if err := helpers.UpdateDatabaseInstanceStatus(ctx, r.Client, &dbInstance); err != nil {
-		logger.Error(err, "更新 DatabaseInstance 状态失败")
-		return ctrl.Result{}, err
-	}
-
-	if err := r.Status().Update(ctx, &dbInstance); err != nil {
 		logger.Error(err, "更新 DatabaseInstance 状态失败")
 		return ctrl.Result{}, err
 	}
