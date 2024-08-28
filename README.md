@@ -1,8 +1,12 @@
 # k8s-database-operator
-// TODO(user): Add simple overview of use/purpose
+`k8s-database-operator` 是一个用于 Kubernetes 集群中的数据库管理的操作器（Operator）。它提供了自动化的数据库实例创建、更新和删除功能，简化了数据库管理的复杂性，并提高了管理效率。
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+`k8s-database-operator` 是一个基于 Kubernetes 的自定义控制器（Operator），用来自动化管理不同类型（包括 MySQL、PostgreSQL、OceanBase-CE）的数据库实例。通过定义和操作 Kubernetes 的自定义资源（CR），它可以让数据库的部署和管理变得更加简便。操作器支持多种数据库类型，能够处理数据库的生命周期管理，包括创建、备份、恢复、升级和删除。通过结合 Kubernetes 的原生功能和自定义的控制器逻辑，提供了高效且一致的数据库部署与管理体验。
+
+> **注意事项：**
+> 1. **OceanBase-CE** 的备份等待进一步实现，目前的方法还有问题
+> 2. 备份用到了 **PVC**，需事先创建好对应的 PV 存储类，如 NFS、Ceph 等，否则 PVC 无法成功创建，会导致备份失败
 
 ## Getting Started
 
