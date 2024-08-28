@@ -23,7 +23,7 @@
 make docker-build docker-push IMG=<some-registry>/k8s-database-operator:tag
 ```
 
-**注意：** 这个镜像需要发布到指定的 registry 中，并确保在工作环境中可以拉取到该镜像。如果以上命令无法执行，请检查你的 registry 访问权限。
+> **注意**：这个镜像需要发布到指定的 registry 中，并确保在工作环境中可以拉取到该镜像。如果以上命令无法执行，请检查你的 registry 访问权限。
 
 **将 CRDs 安装到集群中：**
 
@@ -37,7 +37,7 @@ make install
 make deploy IMG=<some-registry>/k8s-database-operator:tag
 ```
 
-> **注意**: 如果遇到 RBAC 错误，可能需要授予集群管理员权限或以管理员身份登录。
+> **注意**：如果遇到 RBAC 错误，可能需要授予集群管理员权限或以管理员身份登录。
 
 **创建自定义资源的实例**
 
@@ -47,7 +47,7 @@ make deploy IMG=<some-registry>/k8s-database-operator:tag
 kubectl apply -k config/samples/
 ```
 
->**注意**: 确保示例配置有默认值，以便能进行测试。
+> **注意**：确保示例配置有默认值，以便能进行测试。
 
 ### 删除自定义资源
 **删除集群中的自定义资源实例 (CRs)：**
@@ -78,7 +78,7 @@ make undeploy
 make build-installer IMG=<some-registry>/k8s-database-operator:tag
 ```
 
-注意: 上面的 make 目标会在 dist 目录中生成一个 'install.yaml' 文件，这个文件包含了使用 Kustomize 构建的所有资源，可以在没有依赖项的情况下安装本项目。
+> **注意**：上面的 make 目标会在 dist 目录中生成一个 `install.yaml` 文件，这个文件包含了使用 Kustomize 构建的所有资源，可以在没有依赖项的情况下安装本项目。
 
 2. 使用安装程序
 
