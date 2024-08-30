@@ -3,7 +3,7 @@ package helpers
 import (
 	"context"
 
-	databasev1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1"
+	databasev1 "github.com/cmjzzx/k8s-database-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

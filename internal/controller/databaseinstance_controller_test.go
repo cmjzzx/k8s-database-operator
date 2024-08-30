@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appsv1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1"
+	appsv1 "github.com/cmjzzx/k8s-database-operator/api/v1"
 )
 
 var _ = Describe("DatabaseInstance Controller", func() {

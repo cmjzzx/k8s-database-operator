@@ -1,4 +1,4 @@
-module git.ucmed.cn/pdd/k8s-database-operator
+module github.com/cmjzzx/k8s-database-operator
 
 go 1.22.0
 

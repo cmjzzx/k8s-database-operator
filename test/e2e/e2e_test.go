@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"git.ucmed.cn/pdd/k8s-database-operator/test/utils"
+	"github.com/cmjzzx/k8s-database-operator/test/utils"
 )
 
 const namespace = "k8s-database-operator-system"

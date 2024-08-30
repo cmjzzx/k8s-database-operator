@@ -8,7 +8,7 @@ metadata:
   name: databaseinstance-editor-role
 rules:
 - apiGroups:
-  - apps.zwjk.com
+  - apps.leqiutong.xyz
   resources:
   - databaseinstances
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - apps.zwjk.com
+  - apps.leqiutong.xyz
   resources:
   - databaseinstances/status
   verbs:

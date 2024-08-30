@@ -33,7 +33,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appsv1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1"
+	appsv1 "github.com/cmjzzx/k8s-database-operator/api/v1"
 	// +kubebuilder:scaffold:imports
 )
 

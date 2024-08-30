@@ -1,4 +1,4 @@
-apiVersion: apps.zwjk.com/v1
+apiVersion: apps.leqiutong.xyz/v1
 kind: DatabaseInstance
 metadata:
   labels:

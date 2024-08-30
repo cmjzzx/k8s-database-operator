@@ -13,7 +13,7 @@ import (
 
 // GenerateImageName 生成完整的镜像名称
 func GenerateImageName(baseImage, databaseType, version string) string {
-	const imagePrefix = "registry.zwjk.com/middleware/"
+	const imagePrefix = "registry.leqiutong.xyz/middleware/"
 	image := baseImage
 	if image == "" {
 		image = fmt.Sprintf("%s:%s", databaseType, version)

@@ -8,7 +8,7 @@ metadata:
   name: databaseinstance-viewer-role
 rules:
 - apiGroups:
-  - apps.zwjk.com
+  - apps.leqiutong.xyz
   resources:
   - databaseinstances
   verbs:
@@ -16,7 +16,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - apps.zwjk.com
+  - apps.leqiutong.xyz
   resources:
   - databaseinstances/status
   verbs:

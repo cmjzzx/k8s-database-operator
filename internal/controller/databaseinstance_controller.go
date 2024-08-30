@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	databasev1 "git.ucmed.cn/pdd/k8s-database-operator/api/v1"    // 导入 databasev1
-	"git.ucmed.cn/pdd/k8s-database-operator/internal/pkg/helpers" // 辅助函数
+	databasev1 "github.com/cmjzzx/k8s-database-operator/api/v1"    // 导入 databasev1
+	"github.com/cmjzzx/k8s-database-operator/internal/pkg/helpers" // 辅助函数
 )
 
 // 定义 DatabaseInstanceReconciler 结构体，负责调节 DatabaseInstance 对象的状态
@@ -46,9 +46,9 @@ type DatabaseInstanceReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=apps.zwjk.com,resources=databaseinstances,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps.zwjk.com,resources=databaseinstances/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps.zwjk.com,resources=databaseinstances/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apps.leqiutong.xyz,resources=databaseinstances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps.leqiutong.xyz,resources=databaseinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps.leqiutong.xyz,resources=databaseinstances/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

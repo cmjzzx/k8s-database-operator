@@ -2,19 +2,19 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: zwjk.com
+domain: leqiutong.xyz
 layout:
 - go.kubebuilder.io/v4
 projectName: k8s-database-operator
-repo: git.ucmed.cn/pdd/k8s-database-operator
+repo: github.com/cmjzzx/k8s-database-operator
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: zwjk.com
+  domain: leqiutong.xyz
   group: apps
   kind: DatabaseInstance
-  path: git.ucmed.cn/pdd/k8s-database-operator/api/v1
+  path: github.com/cmjzzx/k8s-database-operator/api/v1
   version: v1
 version: "3"
