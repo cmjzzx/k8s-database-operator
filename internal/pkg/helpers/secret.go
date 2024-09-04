@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
+	"errors"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// 生成随机密码
+// GenerateRandomPassword 生成随机密码
 func GenerateRandomPassword(length int) (string, error) {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)
@@ -23,32 +23,71 @@ func GenerateRandomPassword(length int) (string, error) {
 	return base64.StdEncoding.EncodeToString(bytes), nil
 }
 
-// 获取或创建 Secret
+// getSecretKeys 根据数据库类型获取用户名和密码的键名
+func getSecretKeys(ctx context.Context, databaseType string) (string, string, error) {
+	logger := log.FromContext(ctx)
+	switch databaseType {
+	case "postgres":
+		return "postgres-user", "postgres-password", nil
+	case "oceanbase-ce":
+		return "oceanbase-user", "oceanbase-password", nil
+	case "mysql":
+		return "mysql-user", "mysql-password", nil
+	default:
+		err := errors.New("unsupported database type: " + databaseType)
+		logger.Error(err, "不支持的数据库类型", "databaseType", databaseType)
+		return "", "", err
+	}
+}
+
+// createNewSecret 创建新的 Secret
+func createNewSecret(ctx context.Context, c client.Client, name, namespace, secretName, userKey, passwordKey string) (*corev1.Secret, error) {
+	logger := log.FromContext(ctx)
+
+	user, err := GenerateRandomPassword(8) // 生成 8 字节的随机用户名
+	if err != nil {
+		logger.Error(err, "生成用户名失败")
+		return nil, err
+	}
+
+	password, err := GenerateRandomPassword(16) // 生成 16 字节的随机密码
+	if err != nil {
+		logger.Error(err, "生成密码失败")
+		return nil, err
+	}
+
+	newSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+			Labels:    map[string]string{"app": name},
+		},
+		Data: map[string][]byte{
+			userKey:     []byte(user),
+			passwordKey: []byte(password),
+		},
+	}
+	if err := c.Create(ctx, newSecret); err != nil {
+		logger.Error(err, "创建 Secret 失败")
+		return nil, err
+	}
+	return newSecret, nil
+}
+
+// GetOrCreateSecret 获取或创建 Secret
 func GetOrCreateSecret(ctx context.Context, c client.Client, name, namespace, databaseType string) (*corev1.Secret, error) {
 	logger := log.FromContext(ctx)
 
-	// 为不同数据库系统定义密钥名称
-	var userKey, passwordKey string
-	switch databaseType {
-	case "postgres":
-		userKey = "postgres-user"
-		passwordKey = "postgres-password"
-	case "oceanbase-ce":
-		userKey = "oceanbase-user"
-		passwordKey = "oceanbase-password"
-	case "mysql":
-		userKey = "mysql-user"
-		passwordKey = "mysql-password"
-	default:
-		// 对于不支持的数据库类型
-		return nil, fmt.Errorf("unsupported database type: %s", databaseType)
+	userKey, passwordKey, err := getSecretKeys(ctx, databaseType)
+	if err != nil {
+		return nil, err
 	}
 
 	secretName := databaseType + "-secret"
 
 	// 尝试获取现有 Secret
 	existingSecret := &corev1.Secret{}
-	err := c.Get(ctx, client.ObjectKey{Name: secretName, Namespace: namespace}, existingSecret)
+	err = c.Get(ctx, client.ObjectKey{Name: secretName, Namespace: namespace}, existingSecret)
 	if err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			logger.Error(err, "获取 Secret 失败")
@@ -56,34 +95,7 @@ func GetOrCreateSecret(ctx context.Context, c client.Client, name, namespace, da
 		}
 
 		// Secret 不存在，创建新的 Secret
-		user, err := GenerateRandomPassword(8) // 生成 8 字节的随机用户名
-		if err != nil {
-			logger.Error(err, "生成用户名失败")
-			return nil, err
-		}
-
-		password, err := GenerateRandomPassword(16) // 生成 16 字节的随机密码
-		if err != nil {
-			logger.Error(err, "生成密码失败")
-			return nil, err
-		}
-
-		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace,
-				Labels:    map[string]string{"app": name},
-			},
-			Data: map[string][]byte{
-				userKey:     []byte(user),
-				passwordKey: []byte(password),
-			},
-		}
-		if err := c.Create(ctx, newSecret); err != nil {
-			logger.Error(err, "创建 Secret 失败")
-			return nil, err
-		}
-		return newSecret, nil
+		return createNewSecret(ctx, c, name, namespace, secretName, userKey, passwordKey)
 	}
 
 	// Secret 已存在，只更新其他字段

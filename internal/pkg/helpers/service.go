@@ -10,30 +10,27 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// getServiceConfig 根据数据库类型获取服务端口和端口名称
+func getServiceConfig(databaseType string) (int32, string) {
+	switch databaseType {
+	case "mysql":
+		return 3306, "mysql"
+	case "postgres":
+		return 5432, "postgres"
+	case "oceanbase-ce":
+		return 2881, "oceanbase-ce"
+	default:
+		return 3306, "mysql" // 默认值
+	}
+}
+
 // NewService 创建一个新的 Service 对象
 func NewService(name, namespace, databaseType string) *corev1.Service {
 	labels := map[string]string{
 		"app": name,
 	}
 
-	// 根据数据库类型设置端口和端口名称
-	var servicePort int32
-	var portName string
-
-	switch databaseType {
-	case "mysql":
-		servicePort = 3306
-		portName = "mysql"
-	case "postgres":
-		servicePort = 5432
-		portName = "postgres"
-	case "oceanbase-ce":
-		servicePort = 2881
-		portName = "oceanbase-ce"
-	default:
-		servicePort = 3306
-		portName = "mysql" // 默认值
-	}
+	servicePort, portName := getServiceConfig(databaseType)
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -71,7 +68,6 @@ func EnsureService(ctx context.Context, c client.Client, service *corev1.Service
 		return err
 	} else {
 		// Service 存在，更新它
-		// 更新 Service 时，排除不可以更改的字段如 ClusterIP、Type 等字段，只更新可以更改的字段
 		updatedService := found.DeepCopy()
 		updatedService.Spec.Ports = service.Spec.Ports
 		updatedService.Spec.Selector = service.Spec.Selector

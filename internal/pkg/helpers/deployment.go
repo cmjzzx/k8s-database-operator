@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,19 @@ func GenerateImageName(baseImage, databaseType, version string) string {
 	return fmt.Sprintf("%s%s", imagePrefix, image)
 }
 
+// getNFSConfig 从环境变量获取 NFS 配置
+func getNFSConfig() (string, string) {
+	nfsServer := os.Getenv("NFS_SERVER")
+	if nfsServer == "" {
+		nfsServer = "192.168.4.43" // 默认值
+	}
+	nfsPath := os.Getenv("NFS_PATH")
+	if nfsPath == "" {
+		nfsPath = "/home/nfs" // 默认值
+	}
+	return nfsServer, nfsPath
+}
+
 // NewDeployment 创建一个新的 Deployment 对象
 func NewDeployment(name, namespace, image string, replicas int32, databaseType string) *appsv1.Deployment {
 	labels := map[string]string{
@@ -28,31 +42,10 @@ func NewDeployment(name, namespace, image string, replicas int32, databaseType s
 	}
 
 	// 根据数据库类型设置端口和端口名称
-	var containerPort int32
-	var portName, mountPath string
+	containerPort, portName, mountPath := getDatabaseConfig(databaseType)
 
-	switch databaseType {
-	case "mysql":
-		containerPort = 3306
-		portName = "mysql"
-		mountPath = "/var/lib/mysql"
-	case "postgres":
-		containerPort = 5432
-		portName = "postgres"
-		mountPath = "/var/lib/postgresql/data"
-	case "oceanbase-ce":
-		containerPort = 2881
-		portName = "oceanbase-ce"
-		mountPath = "/oceanbase/store"
-	default:
-		containerPort = 3306
-		portName = "mysql" // 默认值
-		mountPath = "/var/lib/mysql"
-	}
-
-	// 暂时硬编码 NFS 服务器地址和路径
-	const nfsServer = "192.168.4.43"
-	const nfsPath = "/home/nfs"
+	// 获取 NFS 配置
+	nfsServer, nfsPath := getNFSConfig()
 
 	// 配置 NFS 存储卷
 	volumeMounts := []corev1.VolumeMount{
@@ -107,6 +100,20 @@ func NewDeployment(name, namespace, image string, replicas int32, databaseType s
 				},
 			},
 		},
+	}
+}
+
+// getDatabaseConfig 根据数据库类型获取配��
+func getDatabaseConfig(databaseType string) (int32, string, string) {
+	switch databaseType {
+	case "mysql":
+		return 3306, "mysql", "/var/lib/mysql"
+	case "postgres":
+		return 5432, "postgres", "/var/lib/postgresql/data"
+	case "oceanbase-ce":
+		return 2881, "oceanbase-ce", "/oceanbase/store"
+	default:
+		return 3306, "mysql", "/var/lib/mysql" // 默认值
 	}
 }
 
