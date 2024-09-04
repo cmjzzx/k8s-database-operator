@@ -6,8 +6,10 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -165,8 +167,7 @@ func NewCronJob(name, namespace, image, schedule, databaseType string) *batchv1.
 								{
 									Name: "backup-volume",
 									VolumeSource: corev1.VolumeSource{
-										// 使用存储卷声明来实现挂载，需事先完成 backup-pvc 的创建，不会自动创建 PVC
-										// 事先进行 PVC 的创建时，需确保已经创建了相应的存储类，否则 PVC 和 PV 无法创建成功
+										// 使用存储卷声明 PVC 来实现挂载，需事先完成 StorageClass 存储类的创建
 										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 											ClaimName: "backup-pvc",
 										},
@@ -181,9 +182,59 @@ func NewCronJob(name, namespace, image, schedule, databaseType string) *batchv1.
 	}
 }
 
+// ensurePVC 确保 PVC 存在，如果不存在则创建
+func ensurePVC(ctx context.Context, c client.Client, name, namespace string) error {
+	logger := ctrl.FromContext(ctx)
+
+	// 定义 PVC
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("1Gi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("10Gi"), // 请根据实际需求进行设置
+				},
+			},
+			StorageClassName: ptr.To("your-actual-storage-class-name-that-has-been-pre-created"), // 替换为已预先创建好的实际存储类名称
+		},
+	}
+
+	// 尝试获取 PVC
+	err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, pvc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// 如果 PVC 不存在，则创建
+			logger.Info("创建一个新的 PVC", "PVC.Namespace", namespace, "PVC.Name", name)
+			if err := c.Create(ctx, pvc); err != nil {
+				logger.Error(err, "新的 PVC 创建失败")
+				return err
+			}
+		} else {
+			// 如果出现其他错误，返回错误
+			logger.Error(err, "获取 PVC 失败")
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureCronJob 确保 CronJob 资源存在，如果不存在则创建，如果存在则更新
 func EnsureCronJob(ctx context.Context, c client.Client, desired *batchv1.CronJob) error {
 	logger := ctrl.FromContext(ctx)
+
+	// 确保 PVC 存在
+	if err := ensurePVC(ctx, c, "backup-pvc", desired.Namespace); err != nil {
+		return err
+	}
 
 	var existing batchv1.CronJob
 	err := c.Get(ctx, types.NamespacedName{Name: desired.Name, Namespace: desired.Namespace}, &existing)
